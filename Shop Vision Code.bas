@@ -5,8 +5,7 @@ Sub main()
     
     Dim wb As Workbook
     Dim Floor As Worksheet
-    Dim ws As Worksheet
-    Dim LaborData As Variant
+    Dim Data As Worksheet
     Dim Resource As String
     Dim Delim As String
     Dim ShapeExist As Shape
@@ -23,59 +22,62 @@ Sub main()
     Dim PercentComplete As Variant
     Dim TodaysEstimate As Variant
     Dim TimeLeft As Variant
-
+    Dim LaborData As ListObject
     
     Set wb = Workbooks("Shop Vision.xlsm")
-    Set ws = wb.Sheets("LaborData")
-    Set Floor = wb.Sheets("First Floor")
-
+    Set Data = wb.Sheets("LaborData")
+    Set Floor = wb.Sheets("ShopFloor")
     
     Call ResetData(Floor)
     
-    LaborData = ws.Range("A1").CurrentRegion.Offset(1, 0)                                        'Convert LaborData to 2D Array
-    rw = 1                                                                                       'First row of Labor Data
-    
-    Do Until LaborData(rw, 7) = ""                                                               'Loop through Labor Data
-        Resource = LaborData(rw, 7)                                                              'Resource Item
+    Set LaborData = Data.ListObjects("ActiveLabor_Table")                                              'Convert LaborData to 2D Array
+    rw = 1                                                                                         'First row of Labor Data
+     
+    For rw = 1 To LaborData.ListRows.Count                                                          'Loop through Labor Data
+        Resource = LaborData.DataBodyRange(, 1)                                                  'Resource Item
 
-            'Check to make sure shape exists
-            On Error Resume Next
-            Set ShapeExist = Nothing
-            Set ShapeExist = wb.Sheets("First Floor").Shapes(Resource)
-            On Error GoTo 0
-            If Not ShapeExist Is Nothing Then
+        'Check to make sure shape exists
+        On Error Resume Next
+        Set ShapeExist = Nothing
+        Set ShapeExist = Floor.Shapes(Resource)
+        On Error GoTo 0
+        If Not ShapeExist Is Nothing Then
             
-                ''''''''''''Update User Interface''''''''''''''''''''''''''
-                PartNum = LaborData(rw, 4)
-                JobNum = LaborData(rw, 1)
-                LaborType = CStr(LaborData(rw, 10))
-                Employee = LaborData(rw, 5)
-                ProdQty = LaborData(rw, 12)
-                PercentComplete = Round(LaborData(rw, 15), 2)
-                TodaysEstimate = Round(LaborData(rw, 16), 2)
-                TimeLeft = Round(ProdQty - LaborData(rw, 3) - LaborData(rw, 14), 0)
-                If TimeLeft < 0 Then
-                    TimeLeft = 0
+            ''''''''''''Update User Interface''''''''''''''''''''''''''
+            PartNum = LaborData.ListColumns("PartNum").DataBodyRange(rw, 1).Value
+            JobNum = LaborData.ListColumns("JobNum").DataBodyRange(rw, 1).Value
+            LaborType = CStr(LaborData.ListColumns("LaborType").DataBodyRange(rw, 1).Value)
+            Employee = LaborData.ListColumns("Employee").DataBodyRange(rw, 1).Value
+            
+            ProdQty = LaborData.ListColumns("ProdQty").DataBodyRange(rw, 1).Value
+            LaborRate = LaborData.ListColumns("ProdStandard").DataBodyRange(rw, 1).Value
+            PercentComplete = Round(LaborData.ListColumns("PercentComplete").DataBodyRange(rw, 1).Value, 2)
+            TodaysEstimate = Round(LaborData.ListColumns("PercentToday").DataBodyRange(rw, 1).Value, 2)
+            
+            ProducedAlready = LaborData.ListColumns("TotalLabor").DataBodyRange(rw, 1).Value
+            ProducedToday = LaborData.ListColumns("ProducedToday").DataBodyRange(rw, 1).Value
+            QtyLeft = Round(ProdQty - ProducedAlready - ProducedToday, 0)
+            
+            If QtyLeft < 0 Then                                                                    'Adjust Time for inaccurate estimates
+                TimeLeft = 0
+            Else
+                If LaborRate <= 0 Then
+                    TimeLeft = "??"
                 Else
-                    If LaborData(rw, 11) <= 0 Then
-                        TimeLeft = "??"
-                    Else
-                        TimeLeft = Round(TimeLeft / LaborData(rw, 11), 0)
-                    End If
+                    TimeLeft = Round(QtyLeft / LaborRate, 0)
                 End If
-                
-                Call PartImage(Floor, Resource, PartNum, LaborType)
-                Call PartStatus(Floor, Resource, LaborType)
-                Call ProductionInfo(Floor, Resource, PartNum, Employee)
-                Call ProductionQty(Floor, Resource, ProdQty)
-                Call JobInfo(Floor, Resource, JobNum)
-                Call StatusBar(Floor, Resource, PercentComplete, TodaysEstimate, TimeLeft, LaborType)
             End If
-
-            rw = rw + 1
+            
+            Call PartImage(Floor, Resource, PartNum, LaborType)
+            Call PartStatus(Floor, Resource, LaborType)
+            Call ProductionInfo(Floor, Resource, PartNum, Employee)
+            Call ProductionQty(Floor, Resource, ProdQty)
+            Call JobInfo(Floor, Resource, JobNum)
+            Call StatusBar(Floor, Resource, PercentComplete, TodaysEstimate, TimeLeft, LaborType)
         
-    Loop
-    ws.Protect (UserInterfaceOnly = True)
+        End If
+
+    Next rw
 End Sub
 
 Sub PartImage(ws, ShapeName As String, PartNum As String, LaborType As Variant)
@@ -274,7 +276,7 @@ Sub ResetData(ws As Worksheet)
     Dim wb As Workbook
     
     Set wb = Workbooks("Shop Vision.xlsm")
-    Resources = wb.Sheets("Resources").Range("A1:A65").Value
+    Set Resources = wb.Sheets("LaborData").ListColumns("Resource ID").Range
     
 
     For k = 1 To UBound(Resources)
