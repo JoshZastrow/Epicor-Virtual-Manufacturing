@@ -1,16 +1,18 @@
 Select  [Resource].[ResourceID] as [Resource ID],
-        [LaborActivity].[JobHead_JobNum] as [JobHead_JobNum],
-        [LaborActivity].[JobHead_PartNum] as [JobHead_PartNum],
-        [LaborActivity].[JobHead_ProdQty] as [JobHead_ProdQty],
-        [LaborActivity].[JobHead_ReqDueDate] as [JobHead_ReqDueDate],
+        [LaborActivity].[JobHead_JobNum] as [JobNum],
+        [LaborActivity].[JobHead_PartNum] as [PartNum],
+        [LaborActivity].[JobHead_ProdQty] as [ProdQty],
+        [LaborActivity].[JobHead_ReqDueDate] as [ReqDueDate],
         [LaborActivity].[OpNum] as [OpNum],
-        [LaborActivity].[EmpBasic_FirstName] as [EmpBasic_FirstName],
-        [LaborActivity].[LaborDtl_ClockInDate] as [LaborDtl_ClockInDate],
-        [LaborActivity].[Resource_Description] as [Resource_Description],
-        [LaborActivity].[LaborDtl_ClockinTime]/24 as [LaborDtl_ClockinTime],
-        [LaborActivity].[LaborDtl_LaborType] as [LaborDtl_LaborType],
-        [LaborActivity].[JobOpDtl_ProdStandard] as [JobOpDtl_ProdStandard],
-        [LaborActivity].[LaborHistory_TotalLabor] as [LaborHistory_TotalLabor]
+        [LaborActivity].[EmpBasic_FirstName] as [Employee],
+        [LaborActivity].[LaborDtl_ClockInDate] as [ClockInDate],
+        [LaborActivity].[Resource_Description] as [ResourceDescription],
+        [LaborActivity].[LaborDtl_ClockinTime] as [ClockinTime],
+        [LaborActivity].[LaborDtl_LaborType] as [LaborType],
+        [LaborActivity].[JobOpDtl_ProdStandard] as [ProdStandard],
+        [LaborActivity].[LaborHistory_TotalLabor] as [TotalLabor],
+        [LaborActivity].[SetupTime] as [SetupTime],
+        [LaborActivity].[ProdTime] as [ProdTime]
 
 FROM Erp.Resource as Resource
  FULL OUTER JOIN (SELECT
@@ -27,6 +29,8 @@ FROM Erp.Resource as Resource
   [LaborDtl].[ClockinTime]/24 as [LaborDtl_ClockinTime],
   [LaborDtl].[LaborType] as [LaborDtl_LaborType],
   [JobOpDtl].[ProdStandard] as [JobOpDtl_ProdStandard],
+  [JobOpDtl].[EstSetHoursPerMch] as [SetupTime],
+  [JobOpDtl].[EstProdHours] as [ProdTime],
   [LaborHistory].[TotalLabor] as [LaborHistory_TotalLabor]
 
 FROM Erp.LaborDtl as LaborDtl

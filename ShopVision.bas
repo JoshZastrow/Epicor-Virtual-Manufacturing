@@ -24,17 +24,18 @@ Sub main()
     Dim TimeLeft As Variant
     Dim LaborData As ListObject
     
-    Set wb = Workbooks("Shop Vision.xlsm")
+    Set wb = Workbooks("Shop Vision.xlsm")                                                          'Define Excel Objects
     Set Data = wb.Sheets("LaborData")
     Set Floor = wb.Sheets("ShopFloor")
+    Floor.Unprotect
     
     Call ResetData(Floor)
     
-    Set LaborData = Data.ListObjects("ActiveLabor_Table")                                              'Convert LaborData to 2D Array
-    rw = 1                                                                                         'First row of Labor Data
+    Set LaborData = Data.ListObjects("ActiveLabor_Table")                                           'Convert LaborData to 2D Array
+    rw = 1                                                                                          'First row of Labor Data
      
     For rw = 1 To LaborData.ListRows.Count                                                          'Loop through Labor Data
-        Resource = LaborData.DataBodyRange(rw, 1)                                                  'Resource Item
+        Resource = LaborData.DataBodyRange(rw, 1)                                                   'Resource Item
 
         'Check to make sure shape exists and Activity is present
         On Error Resume Next
@@ -42,32 +43,26 @@ Sub main()
         Set ShapeExist = Floor.Shapes(Resource)
         On Error GoTo 0
 
-        PartNum = LaborData.ListColumns("PartNum").DataBodyRange(rw, 1).Value
         JobNum = LaborData.ListColumns("JobNum").DataBodyRange(rw, 1).Value
-        LaborType = CStr(LaborData.ListColumns("LaborType").DataBodyRange(rw, 1).Value)
-        Employee = LaborData.ListColumns("Employee").DataBodyRange(rw, 1).Value
         
-        If Not ShapeExist Is Nothing And JobNum <> "" Then
-         
+        If Not ShapeExist Is Nothing And JobNum <> "" Then                                          'Check for activity and shape
+        
+            PartNum = LaborData.ListColumns("PartNum").DataBodyRange(rw, 1).Value                   'Dictionary values....
+            LaborType = CStr(LaborData.ListColumns("LaborType").DataBodyRange(rw, 1).Value)
+            Employee = LaborData.ListColumns("Employee").DataBodyRange(rw, 1).Value
             ProdQty = LaborData.ListColumns("ProdQty").DataBodyRange(rw, 1).Value
             LaborRate = LaborData.ListColumns("ProdStandard").DataBodyRange(rw, 1).Value
             PercentComplete = LaborData.ListColumns("PercentComplete").DataBodyRange(rw, 1).Value
             TodaysEstimate = LaborData.ListColumns("PercentToday").DataBodyRange(rw, 1).Value
-            
+            ProdQty = LaborData.ListColumns("ProdQty").DataBodyRange(rw, 1).Value
             ProducedAlready = LaborData.ListColumns("TotalLabor").DataBodyRange(rw, 1).Value
             ProducedToday = LaborData.ListColumns("ProducedToday").DataBodyRange(rw, 1).Value
             QtyLeft = Round(ProdQty - ProducedAlready - ProducedToday, 0)
-            
-            If QtyLeft < 0 Then                                                                    'Adjust Time for inaccurate estimates
-                TimeLeft = 0
-            Else
-                If LaborRate <= 0 Then
-                    TimeLeft = "??"
-                Else
-                    TimeLeft = Round(QtyLeft / LaborRate, 0)
-                End If
-            End If
-            
+            LaborRate = LaborData.ListColumns("ProdStandard").DataBodyRange(rw, 1).Value
+            SetupTime = LaborData.ListColumns("SetupTime").DataBodyRange(rw, 1).Value
+            TimeElapsed = LaborData.ListColumns("TimeElapsed").DataBodyRange(rw, 1).Value
+            TimeLeft = EstimateProd(LaborType, TimeElapsed, QtyLeft, LaborRate)
+
             Call PartImage(Floor, Resource, PartNum, LaborType)
             Call PartStatus(Floor, Resource, LaborType)
             Call ProductionInfo(Floor, Resource, PartNum, Employee)
@@ -78,6 +73,7 @@ Sub main()
         End If
 
     Next rw
+    Floor.Protect
 End Sub
 
 Sub PartImage(ws, ShapeName As String, PartNum As String, LaborType As Variant)
@@ -242,12 +238,13 @@ Sub StatusBar(ws As Worksheet, ShapeName As String, GradStop1 As Variant, GradSt
             .GradientStops.Insert vbWhite, GradStop1 + GradStop2 + 0.01
         End With
         
-        Image.TextFrame2.TextRange.Characters.Text = TimeLeft & " Hours Left"
+        Image.TextFrame2.TextRange.Characters.Text = TimeLeft
     
     Case "S"
     
         Image.Fill.ForeColor.RGB = RGB(255, 255, 0)
-        Image.TextFrame2.TextRange.Characters.Text = "Setup Time unknown"
+        Image.Fill.Solid
+        Image.TextFrame2.TextRange.Characters.Text = TimeLeft
     Case ""
         
         Image.Fill.ForeColor.RGB = RGB(255, 255, 255)
@@ -293,3 +290,24 @@ Sub ResetData(ws As Worksheet)
         End If
     Next k
 End Sub
+Function EstimateProd(ByVal LaborType As String, ByVal Time As Variant, ByVal QtyLeft As Integer, LaborRate As Variant) As String
+
+Select Case LaborType
+
+Case "P"
+            If QtyLeft <= 0 Then                                                                    'Adjust Time for inaccurate estimates
+                EstimateProd = "Completed?"
+            Else
+                If LaborRate <= 0 Then
+                    EstimateProd = "Unknown Prod. Rate"
+                Else
+                    EstimateProd = CStr(Round(QtyLeft / LaborRate, 0)) & " Hours Left"
+                End If
+            End If
+            
+Case "S"
+
+            EstimateProd = Hour(Time) & " hrs " & Minute(Time) & " min"
+End Select
+
+End Function
