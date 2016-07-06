@@ -246,7 +246,7 @@ Sub StatusBar(ws As Worksheet, ShapeName As String, GradStop1 As Variant, GradSt
     
     Case "S"
     
-        Image.Fill.ForeColor = vbYellow
+        Image.Fill.ForeColor.RGB = RGB(255, 255, 0)
         Image.TextFrame2.TextRange.Characters.Text = "Setup Time unknown"
     Case ""
         
