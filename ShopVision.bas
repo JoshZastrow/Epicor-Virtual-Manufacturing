@@ -111,7 +111,7 @@ Sub PartImage(ws, ShapeName As String, PartNum As String, LaborType As Variant)
         End With
         
         With Image.TextFrame2.TextRange                                         'Change text to "No Image"
-            .Characters.Text = "No" & Chr(13) & "Image"
+            .Characters.Text = "No" & Chr(13) & "Img"
             .Font.Bold = msoTrue
             .ParagraphFormat.Alignment = msoAlignCenter
         End With
@@ -247,8 +247,8 @@ Sub StatusBar(ws As Worksheet, ShapeName As String, GradStop1 As Variant, GradSt
         Image.TextFrame2.TextRange.Characters.Text = TimeLeft
     Case ""
         
-        Image.Fill.ForeColor.RGB = RGB(255, 255, 255)
-        Image.Fill.OneColorGradient msoGradientVertical, 1, 1
+        Image.Fill.ForeColor.RGB = RGB(255, 0, 0)
+        Image.Fill.Solid
         Image.TextFrame2.TextRange.Characters.Text = ""
     End Select
 End Sub
@@ -298,16 +298,47 @@ Case "P"
             If QtyLeft <= 0 Then                                                                    'Adjust Time for inaccurate estimates
                 EstimateProd = "Completed?"
             Else
-                If LaborRate <= 0 Then
+                If LaborRate <= 0 Then                                                              'Message for missing labor rates
                     EstimateProd = "Unknown Prod. Rate"
                 Else
-                    EstimateProd = CStr(Round(QtyLeft / LaborRate, 0)) & " Hours Left"
+                    If (QtyLeft / LaborRate) >= 1.5 Then                                            'Message for more than 1 hour left
+                        EstimateProd = CStr(Round(QtyLeft / LaborRate, 0)) & " Hours Left"
+                    Else
+                        EstimateProd = CStr(Round(QtyLeft / LaborRate, 0)) & " Hour Left"           'Message for 1 hour left (singular)
+                    End If
                 End If
             End If
             
 Case "S"
-
-            EstimateProd = Hour(Time) & " hrs " & Minute(Time) & " min"
+            If Hour(Time) >= 0.5 And Hour(Time) < 1.5 Then EstimateProd = Hour(Time) & " hr " & Minute(Time) & " min"
+            If Hour(Time) < 0.5 Or Hour(Time) >= 1.5 Then EstimateProd = Hour(Time) & " hrs " & Minute(Time) & " min"
 End Select
 
 End Function
+Sub copyshape()
+'
+' Copies GUI machine info shape group, creates a new version for each resource ID in the labor data query
+'
+'Preconditions: Must have a shape group labeled as one of your resource IDs. Rename I in code below to be that ID
+
+
+I = "T144"                                                                                          'Initial Shape Name (The first Resource ID shape)
+
+R_Col = Workbooks("Shop Vision.xlsm").Sheets("LaborData").ListObjects("ActiveLabor_Table").ListColumns("Resource ID").DataBodyRange
+
+For Each R In R_Col
+    Debug.Print R
+    ActiveSheet.Shapes.Range(Array(I)).Select
+    Selection.Copy
+    ActiveSheet.Paste
+    ActiveSheet.Shapes.Range(Array(I)).Name = R
+    ActiveSheet.Shapes.Range(Array("ReqQty_" & I)).Name = "ReqQty_" & R
+    ActiveSheet.Shapes.Range(Array("Status_" & I)).Name = "Status_" & R
+    ActiveSheet.Shapes.Range(Array("JobNum_" & I)).Name = "JobNum_" & R
+    ActiveSheet.Shapes.Range(Array("Image_" & I)).Name = "Image_" & R
+    ActiveSheet.Shapes.Range(Array("Info_" & I)).Name = "Info_" & R
+    ActiveSheet.Shapes.Range(Array("Progress_" & I)).Name = "Progress_" & R
+Next R
+
+End Sub
+
