@@ -74,3 +74,4 @@ FROM Erp.LaborDtl as LaborDtl
     ON Resource.ResourceID = LaborActivity.LaborDtl_ResourceID
 
   WHERE Resource.ResourceType = 'M'
+     OR Resource.ResourceType = 'P'

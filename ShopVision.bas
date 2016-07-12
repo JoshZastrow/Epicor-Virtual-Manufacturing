@@ -11,6 +11,7 @@ Sub main()
     Dim ShapeExist As Shape
     Dim Image As String
     Dim Status As String
+    Dim OpNum As String
     Dim Info As String
     Dim ReqQty As String
     Dim Job As String
@@ -46,7 +47,8 @@ Sub main()
         JobNum = LaborData.ListColumns("JobNum").DataBodyRange(rw, 1).Value
         
         If Not ShapeExist Is Nothing And JobNum <> "" Then                                          'Check for activity and shape
-        
+            
+            OpNum = "(" & LaborData.ListColumns("OpNum").DataBodyRange(rw, 1).Value & ")"
             PartNum = LaborData.ListColumns("PartNum").DataBodyRange(rw, 1).Value                   'Dictionary values....
             LaborType = CStr(LaborData.ListColumns("LaborType").DataBodyRange(rw, 1).Value)
             Employee = LaborData.ListColumns("Employee").DataBodyRange(rw, 1).Value
@@ -65,9 +67,9 @@ Sub main()
 
             Call PartImage(Floor, Resource, PartNum, LaborType)
             Call PartStatus(Floor, Resource, LaborType)
-            Call ProductionInfo(Floor, Resource, PartNum, Employee)
+            Call ProductionInfo(Floor, Resource, PartNum, Employee, OpNum)
             Call ProductionQty(Floor, Resource, ProdQty)
-            Call JobInfo(Floor, Resource, JobNum)
+            Call JobInfo(Floor, Resource, JobNum, OpNum)
             Call StatusBar(Floor, Resource, PercentComplete, TodaysEstimate, TimeLeft, LaborType)
         
         End If
@@ -177,7 +179,7 @@ Sub PartStatus(ws As Worksheet, ShapeName As String, LaborType As Variant)
 End Sub
 
 
-Sub ProductionInfo(ws As Worksheet, ShapeName As String, PartNum As String, Employee As String)
+Sub ProductionInfo(ws As Worksheet, ShapeName As String, PartNum As String, Employee As String, Op As String)
 
 'Modifies the Production Info Box
 
@@ -186,7 +188,7 @@ Sub ProductionInfo(ws As Worksheet, ShapeName As String, PartNum As String, Empl
     Set Image = ws.Shapes.Range(Array("Info_" & UCase(ShapeName)))                              'Create Shape object
     
     With Image.TextFrame2.TextRange                                        'Change text to "No Image"
-        .Characters.Text = PartNum & Chr(13) & Employee
+        .Characters.Text = PartNum & Op & Chr(13) & Employee
     End With
         
 End Sub
@@ -199,7 +201,7 @@ Sub ProductionQty(ws As Worksheet, ShapeName As String, ProdQty As String)
     Image.TextFrame2.TextRange.Characters.Text = ProdQty
 
 End Sub
-Sub JobInfo(ws As Worksheet, ShapeName As String, JobNum As String)
+Sub JobInfo(ws As Worksheet, ShapeName As String, JobNum As String, Op As String)
 
 'Modifies production job number
  
@@ -283,9 +285,9 @@ Sub ResetData(ws As Worksheet)
         If Not ShapeExist Is Nothing Then
                 Call PartImage(ws, CStr(Resources(k, 1).Value), " ", "")
                 Call PartStatus(ws, CStr(Resources(k, 1).Value), "")
-                Call ProductionInfo(ws, CStr(Resources(k, 1).Value), " ", " ")
+                Call ProductionInfo(ws, CStr(Resources(k, 1).Value), " ", " ", "")
                 Call ProductionQty(ws, CStr(Resources(k, 1).Value), " ")
-                Call JobInfo(ws, CStr(Resources(k, 1).Value), " ")
+                Call JobInfo(ws, CStr(Resources(k, 1).Value), " ", "")
                 Call StatusBar(ws, CStr(Resources(k, 1).Value), 0.01, 0.01, "", "")
         End If
     Next k
@@ -296,10 +298,10 @@ Select Case LaborType
 
 Case "P"
             If QtyLeft <= 0 Then                                                                    'Adjust Time for inaccurate estimates
-                EstimateProd = "Completed?"
+                EstimateProd = "Past Complete"
             Else
                 If LaborRate <= 0 Then                                                              'Message for missing labor rates
-                    EstimateProd = "Unknown Prod. Rate"
+                    EstimateProd = "No Prod. Rate"
                 Else
                     If (QtyLeft / LaborRate) >= 1.5 Then                                            'Message for more than 1 hour left
                         EstimateProd = CStr(Round(QtyLeft / LaborRate, 0)) & " Hours Left"
@@ -322,7 +324,7 @@ Sub copyshape()
 'Preconditions: Must have a shape group labeled as one of your resource IDs. Rename I in code below to be that ID
 
 
-I = "T144"                                                                                          'Initial Shape Name (The first Resource ID shape)
+I = InputBox("Enter Resource ID(shape name) of first shape: ")                                      'Initial Shape Name (The first Resource ID shape)
 
 R_Col = Workbooks("Shop Vision.xlsm").Sheets("LaborData").ListObjects("ActiveLabor_Table").ListColumns("Resource ID").DataBodyRange
 
